@@ -1,68 +1,35 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
- * <http://www.doctrine-project.org>.
- */
+
+declare(strict_types=1);
 
 namespace Doctrine\Common\Collections;
 
-use Doctrine\Common\Collections\Expr\Expression;
 use Doctrine\Common\Collections\Expr\CompositeExpression;
+use Doctrine\Common\Collections\Expr\Expression;
+use function array_map;
+use function strtoupper;
 
 /**
  * Criteria for filtering Selectable collections.
- *
- * @author Benjamin Eberlei <kontakt@beberlei.de>
- * @since 2.3
  */
 class Criteria
 {
-    /**
-     * @var string
-     */
-    const ASC  = 'ASC';
+    public const ASC  = 'ASC';
+    public const DESC = 'DESC';
 
-    /**
-     * @var string
-     */
-    const DESC = 'DESC';
-
-    /**
-     * @var \Doctrine\Common\Collections\ExpressionBuilder|null
-     */
+    /** @var ExpressionBuilder|null */
     private static $expressionBuilder;
 
-    /**
-     * @var \Doctrine\Common\Collections\Expr\Expression|null
-     */
+    /** @var Expression|null */
     private $expression;
 
-    /**
-     * @var array|null
-     */
-    private $orderings;
+    /** @var array<string, string> */
+    private $orderings = [];
 
-    /**
-     * @var int|null
-     */
+    /** @var int|null */
     private $firstResult;
 
-    /**
-     * @var int|null
-     */
+    /** @var int|null */
     private $maxResults;
 
     /**
@@ -70,50 +37,51 @@ class Criteria
      *
      * @return Criteria
      */
-    public static function create()
+    public static function create() : self
     {
         return new static();
     }
 
     /**
      * Returns the expression builder.
-     *
-     * @return \Doctrine\Common\Collections\ExpressionBuilder
      */
-    public static function expr()
+    public static function expr() : ExpressionBuilder
     {
         if (self::$expressionBuilder === null) {
             self::$expressionBuilder = new ExpressionBuilder();
         }
+
         return self::$expressionBuilder;
     }
 
     /**
      * Construct a new Criteria.
      *
-     * @param Expression $expression
-     * @param array|null $orderings
-     * @param int|null   $firstResult
-     * @param int|null   $maxResults
+     * @param array<string, string>|null $orderings
      */
-    public function __construct(Expression $expression = null, array $orderings = null, $firstResult = null, $maxResults = null)
+    public function __construct(?Expression $expression = null, ?array $orderings = null, ?int $firstResult = null, ?int $maxResults = null)
     {
-        $this->expression  = $expression;
-        $this->orderings   = $orderings;
-        $this->firstResult = $firstResult;
-        $this->maxResults  = $maxResults;
+        $this->expression = $expression;
+
+        $this->setFirstResult($firstResult);
+        $this->setMaxResults($maxResults);
+
+        if ($orderings === null) {
+            return;
+        }
+
+        $this->orderBy($orderings);
     }
 
     /**
      * Sets the where expression to evaluate when this Criteria is searched for.
      *
-     * @param Expression $expression
-     *
      * @return Criteria
      */
-    public function where(Expression $expression)
+    public function where(Expression $expression) : self
     {
         $this->expression = $expression;
+
         return $this;
     }
 
@@ -121,19 +89,18 @@ class Criteria
      * Appends the where expression to evaluate when this Criteria is searched for
      * using an AND with previous expression.
      *
-     * @param Expression $expression
-     *
      * @return Criteria
      */
-    public function andWhere(Expression $expression)
+    public function andWhere(Expression $expression) : self
     {
         if ($this->expression === null) {
             return $this->where($expression);
         }
 
-        $this->expression = new CompositeExpression(CompositeExpression::TYPE_AND, array(
-            $this->expression, $expression
-        ));
+        $this->expression = new CompositeExpression(
+            CompositeExpression::TYPE_AND,
+            [$this->expression, $expression]
+        );
 
         return $this;
     }
@@ -142,29 +109,26 @@ class Criteria
      * Appends the where expression to evaluate when this Criteria is searched for
      * using an OR with previous expression.
      *
-     * @param Expression $expression
-     *
      * @return Criteria
      */
-    public function orWhere(Expression $expression)
+    public function orWhere(Expression $expression) : self
     {
         if ($this->expression === null) {
             return $this->where($expression);
         }
 
-        $this->expression = new CompositeExpression(CompositeExpression::TYPE_OR, array(
-            $this->expression, $expression
-        ));
+        $this->expression = new CompositeExpression(
+            CompositeExpression::TYPE_OR,
+            [$this->expression, $expression]
+        );
 
         return $this;
     }
 
     /**
      * Gets the expression attached to this Criteria.
-     *
-     * @return Expression|null
      */
-    public function getWhereExpression()
+    public function getWhereExpression() : ?Expression
     {
         return $this->expression;
     }
@@ -172,9 +136,9 @@ class Criteria
     /**
      * Gets the current orderings of this Criteria.
      *
-     * @return array
+     * @return array<string, string>
      */
-    public function getOrderings()
+    public function getOrderings() : array
     {
         return $this->orderings;
     }
@@ -187,22 +151,26 @@ class Criteria
      * @see Criteria::ASC
      * @see Criteria::DESC
      *
-     * @param array $orderings
+     * @param array<string, string> $orderings
      *
      * @return Criteria
      */
-    public function orderBy(array $orderings)
+    public function orderBy(array $orderings) : self
     {
-        $this->orderings = $orderings;
+        $this->orderings = array_map(
+            static function (string $ordering) : string {
+                return strtoupper($ordering) === Criteria::ASC ? Criteria::ASC : Criteria::DESC;
+            },
+            $orderings
+        );
+
         return $this;
     }
 
     /**
      * Gets the current first result option of this Criteria.
-     *
-     * @return int|null
      */
-    public function getFirstResult()
+    public function getFirstResult() : ?int
     {
         return $this->firstResult;
     }
@@ -214,18 +182,17 @@ class Criteria
      *
      * @return Criteria
      */
-    public function setFirstResult($firstResult)
+    public function setFirstResult(?int $firstResult) : self
     {
         $this->firstResult = $firstResult;
+
         return $this;
     }
 
     /**
      * Gets maxResults.
-     *
-     * @return int|null
      */
-    public function getMaxResults()
+    public function getMaxResults() : ?int
     {
         return $this->maxResults;
     }
@@ -237,9 +204,10 @@ class Criteria
      *
      * @return Criteria
      */
-    public function setMaxResults($maxResults)
+    public function setMaxResults(?int $maxResults) : self
     {
         $this->maxResults = $maxResults;
+
         return $this;
     }
 }

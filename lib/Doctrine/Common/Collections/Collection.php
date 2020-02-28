@@ -1,21 +1,6 @@
 <?php
-/*
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * This software consists of voluntary contributions made by many individuals
- * and is licensed under the MIT license. For more information, see
- * <http://www.doctrine-project.org>.
- */
+
+declare(strict_types=1);
 
 namespace Doctrine\Common\Collections;
 
@@ -41,10 +26,10 @@ use IteratorAggregate;
  * position unless you explicitly positioned it before. Prefer iteration with
  * external iterators.
  *
- * @since  2.0
- * @author Guilherme Blanco <guilhermeblanco@hotmail.com>
- * @author Jonathan Wage <jonwage@gmail.com>
- * @author Roman Borschel <roman@code-factory.org>
+ * @psalm-template TKey of array-key
+ * @psalm-template T
+ * @template-extends IteratorAggregate<TKey, T>
+ * @template-extends ArrayAccess<TKey|null, T>
  */
 interface Collection extends Countable, IteratorAggregate, ArrayAccess
 {
@@ -53,16 +38,16 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      *
      * @param mixed $element The element to add.
      *
-     * @return boolean Always TRUE.
+     * @return true Always TRUE.
+     *
+     * @psalm-param T $element
      */
-    public function add($element);
+    public function add($element) : bool;
 
     /**
      * Clears the collection, removing all elements.
-     *
-     * @return void
      */
-    public function clear();
+    public function clear() : void;
 
     /**
      * Checks whether an element is contained in the collection.
@@ -70,23 +55,28 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      *
      * @param mixed $element The element to search for.
      *
-     * @return boolean TRUE if the collection contains the element, FALSE otherwise.
+     * @return bool TRUE if the collection contains the element, FALSE otherwise.
+     *
+     * @psalm-param T $element
      */
-    public function contains($element);
+    public function contains($element) : bool;
 
     /**
      * Checks whether the collection is empty (contains no elements).
      *
-     * @return boolean TRUE if the collection is empty, FALSE otherwise.
+     * @return bool TRUE if the collection is empty, FALSE otherwise.
      */
-    public function isEmpty();
+    public function isEmpty() : bool;
 
     /**
      * Removes the element at the specified index from the collection.
      *
-     * @param string|integer $key The kex/index of the element to remove.
+     * @param string|int $key The key/index of the element to remove.
      *
      * @return mixed The removed element or NULL, if the collection did not contain the element.
+     *
+     * @psalm-param TKey $key
+     * @psalm-return T|null
      */
     public function remove($key);
 
@@ -95,66 +85,82 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      *
      * @param mixed $element The element to remove.
      *
-     * @return boolean TRUE if this collection contained the specified element, FALSE otherwise.
+     * @return bool TRUE if this collection contained the specified element, FALSE otherwise.
+     *
+     * @psalm-param T $element
      */
-    public function removeElement($element);
+    public function removeElement($element) : bool;
 
     /**
      * Checks whether the collection contains an element with the specified key/index.
      *
-     * @param string|integer $key The key/index to check for.
+     * @param string|int $key The key/index to check for.
      *
-     * @return boolean TRUE if the collection contains an element with the specified key/index,
-     *                 FALSE otherwise.
+     * @return bool TRUE if the collection contains an element with the specified key/index,
+     *              FALSE otherwise.
+     *
+     * @psalm-param TKey $key
      */
-    public function containsKey($key);
+    public function containsKey($key) : bool;
 
     /**
      * Gets the element at the specified key/index.
      *
-     * @param string|integer $key The key/index of the element to retrieve.
+     * @param string|int $key The key/index of the element to retrieve.
      *
      * @return mixed
+     *
+     * @psalm-param TKey $key
+     * @psalm-return T|null
      */
     public function get($key);
 
     /**
      * Gets all keys/indices of the collection.
      *
-     * @return array The keys/indices of the collection, in the order of the corresponding
-     *               elements in the collection.
+     * @return array<int, int|string> The keys/indices of the collection, in the order of the corresponding
+     *                                elements in the collection.
+     *
+     * @psalm-return TKey[]
      */
-    public function getKeys();
+    public function getKeys() : array;
 
     /**
      * Gets all values of the collection.
      *
      * @return array The values of all elements in the collection, in the order they
      *               appear in the collection.
+     *
+     * @psalm-return T[]
      */
-    public function getValues();
+    public function getValues() : array;
 
     /**
      * Sets an element in the collection at the specified key/index.
      *
-     * @param string|integer $key   The key/index of the element to set.
-     * @param mixed          $value The element to set.
+     * @param string|int $key   The key/index of the element to set.
+     * @param mixed      $value The element to set.
      *
-     * @return void
+     * @psalm-param TKey $key
+     * @psalm-param T $value
      */
-    public function set($key, $value);
+    public function set($key, $value) : void;
 
     /**
      * Gets a native PHP array representation of the collection.
      *
      * @return array
+     *
+     * @psalm-return array<TKey,T>
      */
-    public function toArray();
+    public function toArray() : array;
 
     /**
      * Sets the internal iterator to the first element in the collection and returns this element.
      *
      * @return mixed
+     *
+     * @psalm-return T|false
      */
     public function first();
 
@@ -162,13 +168,17 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      * Sets the internal iterator to the last element in the collection and returns this element.
      *
      * @return mixed
+     *
+     * @psalm-return T|false
      */
     public function last();
 
     /**
      * Gets the key/index of the element at the current iterator position.
      *
-     * @return int|string
+     * @return int|string|null
+     *
+     * @psalm-return TKey|null
      */
     public function key();
 
@@ -176,6 +186,8 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      * Gets the element of the collection at the current iterator position.
      *
      * @return mixed
+     *
+     * @psalm-return T|false
      */
     public function current();
 
@@ -183,6 +195,8 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      * Moves the internal iterator position to the next element and returns this element.
      *
      * @return mixed
+     *
+     * @psalm-return T|false
      */
     public function next();
 
@@ -191,9 +205,11 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      *
      * @param Closure $p The predicate.
      *
-     * @return boolean TRUE if the predicate is TRUE for at least one element, FALSE otherwise.
+     * @return bool TRUE if the predicate is TRUE for at least one element, FALSE otherwise.
+     *
+     * @psalm-param Closure(TKey=, T=):bool $p
      */
-    public function exists(Closure $p);
+    public function exists(Closure $p) : bool;
 
     /**
      * Returns all the elements of this collection that satisfy the predicate p.
@@ -202,27 +218,34 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      * @param Closure $p The predicate used for filtering.
      *
      * @return Collection A collection with the results of the filter operation.
+     *
+     * @psalm-param Closure(T=, TKey=):bool $p
+     * @psalm-return Collection<TKey, T>
      */
-    public function filter(Closure $p);
+    public function filter(Closure $p) : self;
 
     /**
      * Tests whether the given predicate p holds for all elements of this collection.
      *
      * @param Closure $p The predicate.
      *
-     * @return boolean TRUE, if the predicate yields TRUE for all elements, FALSE otherwise.
+     * @return bool TRUE, if the predicate yields TRUE for all elements, FALSE otherwise.
+     *
+     * @psalm-param Closure(TKey=, T=):bool $p
      */
-    public function forAll(Closure $p);
+    public function forAll(Closure $p) : bool;
 
     /**
      * Applies the given function to each element in the collection and returns
      * a new collection with the elements returned by the function.
      *
-     * @param Closure $func
-     *
      * @return Collection
+     *
+     * @psalm-template U
+     * @psalm-param Closure(T=):U $func
+     * @psalm-return Collection<TKey, U>
      */
-    public function map(Closure $func);
+    public function map(Closure $func) : self;
 
     /**
      * Partitions this collection in two collections according to a predicate.
@@ -230,11 +253,14 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      *
      * @param Closure $p The predicate on which to partition.
      *
-     * @return array An array with two elements. The first element contains the collection
-     *               of elements where the predicate returned TRUE, the second element
-     *               contains the collection of elements where the predicate returned FALSE.
+     * @return array<int, Collection> An array with two elements. The first element contains the collection
+     *                                of elements where the predicate returned TRUE, the second element
+     *                                contains the collection of elements where the predicate returned FALSE.
+     *
+     * @psalm-param Closure(TKey=, T=):bool $p
+     * @psalm-return array{0: Collection<TKey, T>, 1: Collection<TKey, T>}
      */
-    public function partition(Closure $p);
+    public function partition(Closure $p) : array;
 
     /**
      * Gets the index/key of a given element. The comparison of two elements is strict,
@@ -244,6 +270,9 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      * @param mixed $element The element to search for.
      *
      * @return int|string|bool The key/index of the element or FALSE if the element was not found.
+     *
+     * @psalm-param T $element
+     * @psalm-return TKey|false
      */
     public function indexOf($element);
 
@@ -258,6 +287,8 @@ interface Collection extends Countable, IteratorAggregate, ArrayAccess
      * @param int|null $length The maximum number of elements to return, or null for no limit.
      *
      * @return array
+     *
+     * @psalm-return array<TKey,T>
      */
-    public function slice($offset, $length = null);
+    public function slice(int $offset, ?int $length = null) : array;
 }
